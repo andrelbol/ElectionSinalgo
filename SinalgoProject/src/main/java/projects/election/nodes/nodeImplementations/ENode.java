@@ -43,7 +43,7 @@ public class ENode extends Node {
           break;
 
         case COORDENATOR:
-          if (emsg.getId() != this.getID()){
+          if (emsg.getId() != this.getID()) {
             System.out.println(String.format("Node %d setting elected variable to %d.", this.getID(), emsg.getId()));
             this.isParticipant = false;
             this.elected = emsg.getId();
@@ -80,7 +80,8 @@ public class ENode extends Node {
       System.out.println(String.format("Node %d seding message to %d.", this.getID(), successor.getID()));
       send(msg, successor);
     } else if (msg.getId() < this.getID()) {
-      System.out.println(String.format("Node %d is participant, sending message with his ID to %d.", this.getID(), successor.getID()));
+      System.out.println(
+          String.format("Node %d is participant, sending message with his ID to %d.", this.getID(), successor.getID()));
       if (!this.isParticipant) {
         this.isParticipant = true;
         msg.setId(this.getID());
@@ -112,15 +113,27 @@ public class ENode extends Node {
 
     for (Edge edge : nodeConnections) {
       ENode endNode = (ENode) edge.getEndNode();
-      successor = successor == null ? endNode : // Initial
-        endNode.compareTo(this) < 0 ? successor :   // More than self
-        endNode.compareTo(successor) > 0 ? successor : endNode; // Less than current
 
-      System.out.println(String.format("Node %d: comparing successor %d with node %d", this.getID(), successor.getID(), endNode.getID()));
+      if(endNode.compareTo(this) > 0){
+        if(successor == null)
+          successor = endNode;
+        else
+          successor = endNode.compareTo(successor) < 0 ? endNode : successor;
+      }
+      // successor = successor == null ? endNode : // Initial
+      //   endNode.compareTo(this) < 0 ? successor :   // More than self
+      //   endNode.compareTo(successor) > 0 ? successor : endNode; // Less than current
+//      System.out.println(String.format("Node %d: comparing successor %d with node %d", this.getID(), successor.getID(), endNode.getID()));
     }
 
-    // TODO: treat for the case the node is the biggest in ring
-
+    if(successor == null) { // Last Node
+      successor = firstConnectionNode;
+      System.out.println(String.format("Last node %d.", this.getID()));
+      for (Edge edge : nodeConnections){
+        ENode endNode = (ENode) edge.getEndNode();
+        successor = endNode.compareTo(successor) < 0 ? endNode : successor;
+      }
+    }
     System.out.println(String.format("Sucessor do nó  %d mudou para %d.", this.getID(), successor.getID()));
   }
 
