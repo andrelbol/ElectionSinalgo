@@ -85,11 +85,11 @@
         <!--Indicates whether all log-files of the current simulation are stored
             in a new directory. The name of the new directory is given by the string-representation
             of the date when the simulation starts. -->
-        <logToTimeDirectory value="true"/>
+        <logToTimeDirectory value="false"/>
 
         <!--If set to true, the system configuration is written to the default
             log file after the application has been started. -->
-        <logConfiguration value="true"/>
+        <logConfiguration value="false"/>
 
         <!--If set to true, the log files are flushed every time a new log is added. -->
         <eagerFlush value="false"/>
@@ -233,9 +233,9 @@
 
         <Node defaultSize="10"/>
 
-        <GeometricNodeCollection rMax="100"/>
+        <GeometricNodeCollection rMax="500"/>
 
-        <UDG rMax="100"/>
+        <UDG rMax="500"/>
 
         <SINR alpha="2" beta="0.7" noise="0"/>
 

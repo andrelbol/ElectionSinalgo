@@ -7,21 +7,19 @@ import sinalgo.nodes.timers.Timer;
 
 /* Description of Timer */
 public class ETimer extends Timer {
-  ENode sender;
+  ENode sender, receiver;
   int interval;
 
-  public ETimer(ENode sender, int interval) {
+  public ETimer(ENode sender, ENode receiver, int interval) {
     this.sender = sender;
+    this.receiver = receiver;
     this.interval = interval;
   }
 
   /* Function fire called upon timeout */
   public void fire() {
-    // Node creates a message carying its color (sscolor)
     EMessage msg = new EMessage(sender.getID(), MessageType.ELECTION);
-    // The message is sent to each neibor
-    sender.broadcast(msg);
-    // Timer reset
-    this.startRelative(interval, sender);
+    System.out.println(String.format("Node %d sending to node %d.", sender.getID(), receiver.getID()));
+    sender.send(msg, receiver);
   }
 }
