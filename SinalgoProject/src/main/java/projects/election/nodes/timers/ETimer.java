@@ -16,7 +16,9 @@ public class ETimer extends Timer {
     this.interval = interval;
   }
 
-  /* Function fire called upon timeout */
+  /**
+   * This function execute when called timer.startRelative(x, node), after x rounds
+   */
   public void fire() {
     EMessage msg = new EMessage(sender.getID(), MessageType.ELECTION);
     System.out.println(String.format("Node %d sending to node %d.", sender.getID(), receiver.getID()));

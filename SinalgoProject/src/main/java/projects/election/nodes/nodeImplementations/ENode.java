@@ -19,53 +19,35 @@ import sinalgo.nodes.edges.Edge;
 
 public class ENode extends Node {
 
-  private ENode successor;
+  private Color color = Color.BLUE;
   private long elected;
   private boolean isParticipant;
-  Logging log;
+  private ENode successor;
 
   public ENode() {
     super();
     this.isParticipant = false;
-    this.log = Logging.getLogger("Node " + this.getID() + ": ");
   }
 
   @Override
   public void handleMessages(Inbox inbox) {
-
-    while (inbox.hasNext()) {
-      Message msg = inbox.next();
+    for (Message msg : inbox) {
       if (msg instanceof EMessage) {
         EMessage emsg = (EMessage) msg;
         switch (emsg.getType()) {
-        case ELECTION:
-          treatElectionMessage(emsg);
-          break;
 
-        case COORDENATOR:
-          if (emsg.getId() != this.getID()) {
-            System.out.println(String.format("Node %d setting elected variable to %d.", this.getID(), emsg.getId()));
-            this.isParticipant = false;
-            this.elected = emsg.getId();
-            send(msg, successor);
-          } else {
-            System.out.println("Election terminated!");
-          }
-          break;
+          case ELECTION:
+            treatElectionMessage(emsg);
+            break;
 
-        default:
+          case COORDENATOR:
+            treatCoordMessage(emsg);
+            break;
+
+          default:
         }
       }
     }
-  }
-
-  public void draw(Graphics g, PositionTransformation pt, boolean highlight) {
-    Color nodeColor = this.elected == this.getID() ? Color.RED : Color.BLUE;
-    Color textColor = Color.WHITE;
-    String text = "" + this.getID();
-
-    this.setColor(nodeColor);
-    super.drawNodeAsDiskWithText(g, pt, highlight, text, 20, textColor);
   }
 
   /**
@@ -77,20 +59,33 @@ public class ENode extends Node {
    */
   public void treatElectionMessage(EMessage msg) {
     if (msg.getId() > this.getID()) {
-      System.out.println(String.format("Node %d seding message to %d.", this.getID(), successor.getID()));
+      System.out.println(String.format("%s seding message to %s.", this, successor));
       send(msg, successor);
     } else if (msg.getId() < this.getID()) {
       System.out.println(
-          String.format("Node %d is participant, sending message with his ID to %d.", this.getID(), successor.getID()));
+          String.format("%s is participant, sending message with his ID to %s.", this, successor));
       if (!this.isParticipant) {
         this.isParticipant = true;
         msg.setId(this.getID());
         send(msg, successor);
       }
-    } else { // Id igual
-      System.out.println(String.format("Node %d is the winner, start sending coord message.", this.getID()));
+    } else { // Same Id
+      System.out.println(String.format("%s is the winner, start sending coord message.", this));
+      elected = this.getID();
       EMessage coordMessage = new EMessage(this.getID(), MessageType.COORDENATOR);
       send(coordMessage, successor);
+    }
+  }
+
+  public void treatCoordMessage(EMessage msg) {
+    if (msg.getId() != this.getID()) {
+      System.out.println(String.format("%s setting elected variable to %d.", this, msg.getId()));
+      this.isParticipant = false;
+      this.elected = msg.getId();
+      send(msg, successor);
+    } else {
+      System.out.println("Election terminated!");
+      this.color = Color.RED;
     }
   }
 
@@ -98,43 +93,54 @@ public class ENode extends Node {
     return "Node " + this.getID();
   }
 
-  public void preStep() {
-  }
-
-  public void init() {
-  }
-
   @Override
   public void neighborhoodChange() {
-    
-    successor = null;
     Connections nodeConnections = this.getOutgoingConnections();
     ENode firstConnectionNode = (ENode) nodeConnections.iterator().next().getEndNode();
+    successor = null;
 
     for (Edge edge : nodeConnections) {
       ENode endNode = (ENode) edge.getEndNode();
-
-      if(endNode.compareTo(this) > 0){
-        if(successor == null)
+      if (endNode.compareTo(this) > 0) {
+        if (successor == null)
           successor = endNode;
         else
           successor = endNode.compareTo(successor) < 0 ? endNode : successor;
       }
-      // successor = successor == null ? endNode : // Initial
-      //   endNode.compareTo(this) < 0 ? successor :   // More than self
-      //   endNode.compareTo(successor) > 0 ? successor : endNode; // Less than current
-//      System.out.println(String.format("Node %d: comparing successor %d with node %d", this.getID(), successor.getID(), endNode.getID()));
     }
 
-    if(successor == null) { // Last Node
+    if (successor == null) { // Last Node
       successor = firstConnectionNode;
       System.out.println(String.format("Last node %d.", this.getID()));
-      for (Edge edge : nodeConnections){
+      for (Edge edge : nodeConnections) { // Find the smallest
         ENode endNode = (ENode) edge.getEndNode();
         successor = endNode.compareTo(successor) < 0 ? endNode : successor;
       }
     }
-    System.out.println(String.format("Sucessor do nó  %d mudou para %d.", this.getID(), successor.getID()));
+    System.out.print(String.format("Sucessor of %s is %s", this, successor));
+  }
+
+  public void draw(Graphics g, PositionTransformation pt, boolean highlight) {
+    String text = "" + this.getID();
+    Color textColor = Color.WHITE;
+
+    this.setColor(this.color);
+    super.drawNodeAsDiskWithText(g, pt, highlight, text, 70, textColor);
+  }
+
+  @NodePopupMethod(menuText = "Start Election")
+  public void startElection() {
+    EMessage msg = new EMessage(this.getID(), MessageType.ELECTION);
+    ETimer timer = new ETimer(this, successor, 1);
+
+    timer.startRelative(1, this);
+    Tools.appendToOutput(String.format("Start Routing from %s \n", this));
+  }
+
+  public void preStep() {
+  }
+
+  public void init() {
   }
 
   public void postStep() {
@@ -144,14 +150,5 @@ public class ENode extends Node {
   }
 
   public void compute() {
-  }
-
-  @NodePopupMethod(menuText = "Start Election")
-  public void startElection() {
-    EMessage msg = new EMessage(this.getID(), MessageType.ELECTION);
-    // MessageTimer msgTimer = new MessageTimer(msg, successor);
-    ETimer timer = new ETimer(this, successor, 1);
-    timer.startRelative(1, this);
-    Tools.appendToOutput("Start Routing from node " + this.getID() + "\n");
   }
 }
